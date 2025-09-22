@@ -3,8 +3,8 @@ package com.github.Jose_Daniel_Lopez.github_activity_cli.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 
 
 @NoArgsConstructor
@@ -19,6 +19,10 @@ public class GitHubEvent {
     @JsonProperty("payload")
     private Object payload;
 
+    @JsonProperty("created_at")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private String created_at;
+
     public Object getPayload() {
         return payload;
     }
@@ -29,5 +33,9 @@ public class GitHubEvent {
 
     public Repo getRepo() {
         return repo;
+    }
+
+    public String getCreated_at() {
+        return created_at;
     }
 }

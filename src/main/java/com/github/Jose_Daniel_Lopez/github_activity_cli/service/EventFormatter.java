@@ -21,7 +21,7 @@ public class EventFormatter {
                 int size = getPushSize(event);
                 yield AnsiColor.BOLD_GREEN + AnsiColor.ICON_PUSH +
                         "Pushed " + size + " commits to " + repoName +
-                        AnsiColor.RESET;
+                        AnsiColor.RESET + " -> " + event.getCreated_at();
             }
             case "WatchEvent" -> // Starred
                     AnsiColor.BOLD_YELLOW + AnsiColor.ICON_STAR +
