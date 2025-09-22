@@ -4,13 +4,45 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Data Transfer Object (DTO) representing an issue comment event from GitHub.
+ * <p>
+ * Derived from GitHub's {@code IssueCommentEvent}, triggered when a user comments on an issue or pull request.
+ * This DTO captures the repository context and the content of the comment.
+ * </p>
+ * <p><strong>Note:</strong> Although setters are generated via Lombok, this DTO is intended
+ * to be effectively immutable after instantiation. Avoid modifying instances in multi-threaded contexts.</p>
+ *
+ * @since 1.0
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class IssueCommentEventDto {
+
+    /**
+     * Name of the repository where the comment was posted.
+     * Example: "my-bug-tracker"
+     */
     private String repoName;
+
+    /**
+     * Owner (user or organization) of the repository.
+     * Example: "johndoe"
+     */
     private String repoOwner;
+
+    /**
+     * The actual text content of the comment.
+     * May contain Markdown, URLs, or code snippets.
+     * <p>Example: "Thanks for reporting! I'll look into this."</p>
+     */
     private String commentBody;
+
+    /**
+     * ISO 8601 formatted timestamp indicating when the comment was posted.
+     * Example: "2025-04-01T12:34:56Z"
+     * <p>Populated from the {@code created_at} field of the GitHub event.</p>
+     */
     private String occurredAt;
 }
-
