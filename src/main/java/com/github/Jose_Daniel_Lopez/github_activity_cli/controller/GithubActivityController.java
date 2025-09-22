@@ -2,6 +2,10 @@ package com.github.Jose_Daniel_Lopez.github_activity_cli.controller;
 
 import com.github.Jose_Daniel_Lopez.github_activity_cli.model.GitHubEvent;
 import com.github.Jose_Daniel_Lopez.github_activity_cli.service.EventFormatter;
+import com.github.Jose_Daniel_Lopez.github_activity_cli.dto.StarEventDto;
+import com.github.Jose_Daniel_Lopez.github_activity_cli.dto.CommitEventDto;
+import com.github.Jose_Daniel_Lopez.github_activity_cli.dto.PushEventDto;
+import com.github.Jose_Daniel_Lopez.github_activity_cli.dto.IssueEventDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -33,26 +37,23 @@ public class GithubActivityController {
     }
 
     @GetMapping("/activity/{username}")
-    public List<String> getActivity(@PathVariable String username) {
+    public Object getActivity(@PathVariable String username) {
         String url = "https://api.github.com/users/" + username + "/events";
-
         HttpHeaders headers = new HttpHeaders();
         headers.set("User-Agent", "SpringBootGitHubCLI/1.0");
         HttpEntity<String> entity = new HttpEntity<>(headers);
-
         try {
             GitHubEvent[] events = restTemplate.exchange(url, HttpMethod.GET, entity, GitHubEvent[].class).getBody();
-
             List<String> formattedEvents = new ArrayList<>();
-
             if (events != null) {
                 for (GitHubEvent event : events) {
                     formattedEvents.add(EventFormatter.format(event));
                 }
             }
-
+            if (formattedEvents.isEmpty()) {
+                return "The specified user has no activity events.";
+            }
             return formattedEvents;
-
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode().value() == 404) {
                 throw new RuntimeException("User not found: " + username);
@@ -65,34 +66,39 @@ public class GithubActivityController {
     }
 
     @GetMapping("/commits/{username}")
-    public int getTotalCommits(@PathVariable String username) {
+    public Object getCommitEvents(@PathVariable String username) {
         String url = "https://api.github.com/users/" + username + "/events";
-
         HttpHeaders headers = new HttpHeaders();
         headers.set("User-Agent", "SpringBootGitHubCLI/1.0");
         HttpEntity<String> entity = new HttpEntity<>(headers);
-
         try {
             GitHubEvent[] events = restTemplate.exchange(url, HttpMethod.GET, entity, GitHubEvent[].class).getBody();
-
-            int totalCommits = 0;
-
+            List<CommitEventDto> commitEvents = new ArrayList<>();
             if (events != null) {
                 for (GitHubEvent event : events) {
                     if ("PushEvent".equals(event.getType())) {
+                        String repoName = event.getRepo() != null ? event.getRepo().getName() : null;
+                        String repoOwner = null;
+                        if (repoName != null && repoName.contains("/")) {
+                            repoOwner = repoName.split("/")[0];
+                        }
+                        int commitCount = 0;
                         Object payload = event.getPayload();
                         if (payload instanceof java.util.Map<?, ?> map) {
                             Object size = map.get("size");
                             if (size instanceof Number) {
-                                totalCommits += ((Number) size).intValue();
+                                commitCount = ((Number) size).intValue();
                             }
                         }
+                        String pushedAt = event.getCreatedAt();
+                        commitEvents.add(new CommitEventDto(repoName, repoOwner, commitCount, pushedAt));
                     }
                 }
             }
-
-            return totalCommits;
-
+            if (commitEvents.isEmpty()) {
+                return "The specified user has no commit events.";
+            }
+            return commitEvents;
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode().value() == 404) {
                 throw new RuntimeException("User not found: " + username);
@@ -105,26 +111,39 @@ public class GithubActivityController {
     }
 
     @GetMapping("/pushes/{username}")
-    public int getTotalPushes(@PathVariable String username) {
+    public Object getPushEvents(@PathVariable String username) {
         String url = "https://api.github.com/users/" + username + "/events";
         HttpHeaders headers = new HttpHeaders();
         headers.set("User-Agent", "SpringBootGitHubCLI/1.0");
         HttpEntity<String> entity = new HttpEntity<>(headers);
         try {
             GitHubEvent[] events = restTemplate.exchange(url, HttpMethod.GET, entity, GitHubEvent[].class).getBody();
-
-            int totalPushes = 0;
-
+            List<PushEventDto> pushEvents = new ArrayList<>();
             if (events != null) {
                 for (GitHubEvent event : events) {
                     if ("PushEvent".equals(event.getType())) {
-                        totalPushes++;
+                        String repoName = event.getRepo() != null ? event.getRepo().getName() : null;
+                        String repoOwner = null;
+                        if (repoName != null && repoName.contains("/")) {
+                            repoOwner = repoName.split("/")[0];
+                        }
+                        int commitCount = 0;
+                        Object payload = event.getPayload();
+                        if (payload instanceof java.util.Map<?, ?> map) {
+                            Object size = map.get("size");
+                            if (size instanceof Number) {
+                                commitCount = ((Number) size).intValue();
+                            }
+                        }
+                        String pushedAt = event.getCreatedAt();
+                        pushEvents.add(new PushEventDto(repoName, repoOwner, commitCount, pushedAt));
                     }
                 }
             }
-
-            return totalPushes;
-
+            if (pushEvents.isEmpty()){
+                return "The specified user has no push events.";
+            }
+            return pushEvents;
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode().value() == 404) {
                 throw new RuntimeException("User not found: " + username);
@@ -137,22 +156,47 @@ public class GithubActivityController {
     }
 
     @GetMapping("/issues/{username}")
-    public int getTotalIssues(@PathVariable String username) {
+    public Object getIssueEvents(@PathVariable String username) {
         String url = "https://api.github.com/users/" + username + "/events";
         HttpHeaders headers = new HttpHeaders();
         headers.set("User-Agent", "SpringBootGitHubCLI/1.0");
         HttpEntity<String> entity = new HttpEntity<>(headers);
         try {
             GitHubEvent[] events = restTemplate.exchange(url, HttpMethod.GET, entity, GitHubEvent[].class).getBody();
-            int totalIssues = 0;
+            List<IssueEventDto> issueEvents = new ArrayList<>();
             if (events != null) {
                 for (GitHubEvent event : events) {
                     if ("IssuesEvent".equals(event.getType())) {
-                        totalIssues++;
+                        String repoName = event.getRepo() != null ? event.getRepo().getName() : null;
+                        String repoOwner = null;
+                        if (repoName != null && repoName.contains("/")) {
+                            repoOwner = repoName.split("/")[0];
+                        }
+                        String issueTitle = null;
+                        String action = null;
+                        Object payload = event.getPayload();
+                        if (payload instanceof java.util.Map<?, ?> map) {
+                            Object issueObj = map.get("issue");
+                            if (issueObj instanceof java.util.Map<?, ?> issueMap) {
+                                Object titleObj = issueMap.get("title");
+                                if (titleObj instanceof String) {
+                                    issueTitle = (String) titleObj;
+                                }
+                            }
+                            Object actionObj = map.get("action");
+                            if (actionObj instanceof String) {
+                                action = (String) actionObj;
+                            }
+                        }
+                        String occurredAt = event.getCreatedAt();
+                        issueEvents.add(new IssueEventDto(repoName, repoOwner, issueTitle, action, occurredAt));
                     }
                 }
             }
-            return totalIssues;
+            if (issueEvents.isEmpty()) {
+                return "The specified user has no opened issues.";
+            }
+            return issueEvents;
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode().value() == 404) {
                 throw new RuntimeException("User not found: " + username);
@@ -165,28 +209,31 @@ public class GithubActivityController {
     }
 
     @GetMapping("/stars/{username}")
-    public int getTotalStars(@PathVariable String username) {
+    public Object getStarEvents(@PathVariable String username) {
         String url = "https://api.github.com/users/" + username + "/events";
-
         HttpHeaders headers = new HttpHeaders();
         headers.set("User-Agent", "SpringBootGitHubCLI/1.0");
         HttpEntity<String> entity = new HttpEntity<>(headers);
-
         try {
             GitHubEvent[] events = restTemplate.exchange(url, HttpMethod.GET, entity, GitHubEvent[].class).getBody();
-
-            int totalStars = 0;
-
+            List<StarEventDto> starEvents = new ArrayList<>();
             if (events != null) {
                 for (GitHubEvent event : events) {
                     if ("WatchEvent".equals(event.getType())) {
-                        totalStars++;
+                        String repoName = event.getRepo() != null ? event.getRepo().getName() : null;
+                        String repoOwner = null;
+                        if (repoName != null && repoName.contains("/")) {
+                            repoOwner = repoName.split("/")[0];
+                        }
+                        String starredAt = event.getCreatedAt();
+                        starEvents.add(new StarEventDto(repoName, repoOwner, starredAt));
                     }
                 }
             }
-
-            return totalStars;
-
+            if (starEvents.isEmpty()) {
+                return "The specified user has no starred repositories.";
+            }
+            return starEvents;
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode().value() == 404) {
                 throw new RuntimeException("User not found: " + username);

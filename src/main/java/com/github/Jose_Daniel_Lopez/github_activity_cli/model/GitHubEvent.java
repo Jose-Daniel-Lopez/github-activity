@@ -35,7 +35,5 @@ public class GitHubEvent {
         return repo;
     }
 
-    public String getCreated_at() {
-        return created_at;
-    }
+    public String getCreatedAt() { return created_at; }
 }
