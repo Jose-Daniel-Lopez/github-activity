@@ -14,6 +14,16 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * REST controller for fetching and formatting GitHub user activity.
+ * <p>
+ * All endpoints return either a list of processed events or a descriptive message if no events are found.
+ * Note: GitHub's Events API only returns activity from the last 90 days. Some endpoints (e.g., commits, issues)
+ * are limited by this constraint — there is no official API for historical/all-time data across repositories.
+ * </p>
+ * <p><strong>Design Note:</strong> Returns {@code Object} to allow flexible response (List or String message).
+ * Consider using {@code ResponseEntity<?>} in future for explicit HTTP status control.</p>
+ */
 @RestController
 @RequestMapping("/api")
 public class GithubActivityController {
@@ -21,6 +31,12 @@ public class GithubActivityController {
     private final GitHubApiService gitHubApiService;
     private final EventProcessingService eventProcessingService;
 
+    /**
+     * Constructor-based dependency injection for required services.
+     *
+     * @param gitHubApiService       service to fetch raw events from GitHub API
+     * @param eventProcessingService service to filter and transform events into DTOs
+     */
     @Autowired
     public GithubActivityController(GitHubApiService gitHubApiService, EventProcessingService eventProcessingService) {
         this.gitHubApiService = gitHubApiService;
@@ -29,6 +45,11 @@ public class GithubActivityController {
 
     // ========== HEALTH CHECK ==========
 
+    /**
+     * Simple health check endpoint.
+     *
+     * @return "OK" if service is running
+     */
     @GetMapping("/health")
     public String healthCheck() {
         return "OK";
@@ -36,6 +57,14 @@ public class GithubActivityController {
 
     // ========== GENERAL ACTIVITY ENDPOINTS ==========
 
+    /**
+     * Fetches and formats all recent public events for a GitHub user.
+     * <p><strong>Note:</strong> Only events from the last 90 days are available via GitHub API.</p>
+     *
+     * @param username GitHub username
+     * @return List of formatted event strings, or message if no events found
+     * @throws RuntimeException wrapped GitHub API exceptions via {@link GitHubApiService#handleGitHubApiException}
+     */
     @GetMapping("/activity/{username}")
     public Object getActivity(@PathVariable String username) {
         try {
@@ -54,6 +83,13 @@ public class GithubActivityController {
 
     // ========== TOTAL ACTIVITY ENDPOINTS ==========
 
+    /**
+     * Fetches all repositories starred by the user.
+     *
+     * @param username GitHub username
+     * @return List of {@link StarEventDto}, or message if none found
+     * @throws RuntimeException wrapped GitHub API exceptions
+     */
     @GetMapping("/stars/{username}")
     public Object getStarEvents(@PathVariable String username) {
         try {
@@ -65,6 +101,13 @@ public class GithubActivityController {
         }
     }
 
+    /**
+     * Fetches all public repositories owned by the user.
+     *
+     * @param username GitHub username
+     * @return List of {@link RepositoryDto}, or message if none found
+     * @throws RuntimeException wrapped GitHub API exceptions
+     */
     @GetMapping("/repositories/{username}")
     public Object getUserRepositories(@PathVariable String username) {
         try {
@@ -78,11 +121,17 @@ public class GithubActivityController {
 
     // ========== RECENT ACTIVITY ENDPOINTS (LAST 90 DAYS) ==========
 
+    /**
+     * Fetches recent commit events (from PushEvents) for the user.
+     * <p><strong>Note:</strong> GitHub does not provide an all-time commit history API.
+     * This uses PushEvents from the last 90 days as the only available source.</p>
+     *
+     * @param username GitHub username
+     * @return List of {@link CommitEventDto}, or message if none found
+     * @throws RuntimeException wrapped GitHub API exceptions
+     */
     @GetMapping("/commits/{username}")
     public Object getCommitEvents(@PathVariable String username) {
-        // Note: GitHub doesn't provide a direct API for all-time commits by a user
-        // We can only get commits from recent events (last 90 days) or from specific repositories
-        // This endpoint will continue to use the events API as it's the only available source
         try {
             GitHubEvent[] events = gitHubApiService.fetchUserEvents(username);
             List<GitHubEvent> pushEvents = eventProcessingService.filterEventsByType(events, "PushEvent");
@@ -93,10 +142,15 @@ public class GithubActivityController {
         }
     }
 
+    /**
+     * Fetches recent push events for the user (last 90 days).
+     *
+     * @param username GitHub username
+     * @return List of {@link PushEventDto}, or message if none found
+     * @throws RuntimeException wrapped GitHub API exceptions
+     */
     @GetMapping("/pushes/{username}")
     public Object getPushEvents(@PathVariable String username) {
-        // Note: GitHub doesn't provide a direct API for all-time pushes by a user
-        // This endpoint will continue to use the events API (last 90 days)
         try {
             GitHubEvent[] events = gitHubApiService.fetchUserEvents(username);
             List<GitHubEvent> pushEvents = eventProcessingService.filterEventsByType(events, "PushEvent");
@@ -107,10 +161,16 @@ public class GithubActivityController {
         }
     }
 
+    /**
+     * Fetches recent issue events created by the user (last 90 days).
+     * <p><strong>Note:</strong> GitHub does not provide an all-time cross-repo issue history API.</p>
+     *
+     * @param username GitHub username
+     * @return List of {@link IssueEventDto}, or message if none found
+     * @throws RuntimeException wrapped GitHub API exceptions
+     */
     @GetMapping("/issues/{username}")
     public Object getIssueEvents(@PathVariable String username) {
-        // Note: GitHub doesn't provide a direct API for all issues created by a user across all repositories
-        // This endpoint will continue to use the events API (last 90 days)
         try {
             GitHubEvent[] events = gitHubApiService.fetchUserEvents(username);
             List<GitHubEvent> issueEvents = eventProcessingService.filterEventsByType(events, "IssuesEvent");
@@ -121,6 +181,13 @@ public class GithubActivityController {
         }
     }
 
+    /**
+     * Fetches repository fork events triggered by the user.
+     *
+     * @param username GitHub username
+     * @return List of {@link ForkEventDto}, or message if none found
+     * @throws RuntimeException wrapped GitHub API exceptions
+     */
     @GetMapping("/forks/{username}")
     public Object getForkEvents(@PathVariable String username) {
         try {
@@ -133,6 +200,13 @@ public class GithubActivityController {
         }
     }
 
+    /**
+     * Fetches pull request events involving the user.
+     *
+     * @param username GitHub username
+     * @return List of {@link PullRequestEventDto}, or message if none found
+     * @throws RuntimeException wrapped GitHub API exceptions
+     */
     @GetMapping("/pulls/{username}")
     public Object getPullRequestEvents(@PathVariable String username) {
         try {
@@ -145,6 +219,13 @@ public class GithubActivityController {
         }
     }
 
+    /**
+     * Fetches release events published by the user.
+     *
+     * @param username GitHub username
+     * @return List of {@link ReleaseEventDto}, or message if none found
+     * @throws RuntimeException wrapped GitHub API exceptions
+     */
     @GetMapping("/releases/{username}")
     public Object getReleaseEvents(@PathVariable String username) {
         try {
@@ -157,6 +238,13 @@ public class GithubActivityController {
         }
     }
 
+    /**
+     * Fetches issue comment events by the user.
+     *
+     * @param username GitHub username
+     * @return List of {@link IssueCommentEventDto}, or message if none found
+     * @throws RuntimeException wrapped GitHub API exceptions
+     */
     @GetMapping("/comments/{username}")
     public Object getIssueCommentEvents(@PathVariable String username) {
         try {
@@ -169,6 +257,13 @@ public class GithubActivityController {
         }
     }
 
+    /**
+     * Fetches repository publicization events by the user.
+     *
+     * @param username GitHub username
+     * @return List of {@link PublicEventDto}, or message if none found
+     * @throws RuntimeException wrapped GitHub API exceptions
+     */
     @GetMapping("/public/{username}")
     public Object getPublicEvents(@PathVariable String username) {
         try {
@@ -181,6 +276,13 @@ public class GithubActivityController {
         }
     }
 
+    /**
+     * Fetches branch/tag delete events by the user.
+     *
+     * @param username GitHub username
+     * @return List of {@link DeleteEventDto}, or message if none found
+     * @throws RuntimeException wrapped GitHub API exceptions
+     */
     @GetMapping("/delete/{username}")
     public Object getDeleteEvents(@PathVariable String username) {
         try {
@@ -193,6 +295,13 @@ public class GithubActivityController {
         }
     }
 
+    /**
+     * Fetches repository/branch creation events by the user.
+     *
+     * @param username GitHub username
+     * @return List of {@link CreateEventDto}, or message if none found
+     * @throws RuntimeException wrapped GitHub API exceptions
+     */
     @GetMapping("/create/{username}")
     public Object getCreateEvents(@PathVariable String username) {
         try {
@@ -205,6 +314,13 @@ public class GithubActivityController {
         }
     }
 
+    /**
+     * Fetches repository collaborator addition events.
+     *
+     * @param username GitHub username
+     * @return List of {@link MemberEventDto}, or message if none found
+     * @throws RuntimeException wrapped GitHub API exceptions
+     */
     @GetMapping("/member/{username}")
     public Object getMemberEvents(@PathVariable String username) {
         try {
@@ -220,7 +336,12 @@ public class GithubActivityController {
     // ========== HELPER METHODS ==========
 
     /**
-     * Helper method to handle empty results with appropriate messages
+     * Returns the given list if non-empty, otherwise returns the provided empty message.
+     * <p><strong>Contract:</strong> Never returns {@code null}.</p>
+     *
+     * @param resultList    the list of results to check
+     * @param emptyMessage  message to return if list is empty
+     * @return the list if not empty, otherwise the empty message
      */
     private Object handleEmptyResult(List<?> resultList, String emptyMessage) {
         if (resultList.isEmpty()) {
