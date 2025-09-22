@@ -68,7 +68,7 @@ public class EventProcessingService {
                     commitCount = ((Number) size).intValue();
                 }
             }
-            commitEvents.add(new CommitEventDto(repoInfo[0], repoInfo[1], commitCount, event.getCreatedAt()));
+            commitEvents.add(new CommitEventDto(repoInfo[0], repoInfo[1], commitCount, event.getCreated_at()));
         }
         return commitEvents;
     }
@@ -88,7 +88,7 @@ public class EventProcessingService {
                     commitCount = ((Number) size).intValue();
                 }
             }
-            pushEventDtos.add(new PushEventDto(repoInfo[0], repoInfo[1], commitCount, event.getCreatedAt()));
+            pushEventDtos.add(new PushEventDto(repoInfo[0], repoInfo[1], commitCount, event.getCreated_at()));
         }
         return pushEventDtos;
     }
@@ -110,7 +110,7 @@ public class EventProcessingService {
                 }
                 action = getStringValue(map, "action");
             }
-            issueEventDtos.add(new IssueEventDto(repoInfo[0], repoInfo[1], issueTitle, action, event.getCreatedAt()));
+            issueEventDtos.add(new IssueEventDto(repoInfo[0], repoInfo[1], issueTitle, action, event.getCreated_at()));
         }
         return issueEventDtos;
     }
@@ -172,7 +172,7 @@ public class EventProcessingService {
                     forkedRepoName = getStringValue(forkeeMap, "full_name");
                 }
             }
-            forkEventDtos.add(new ForkEventDto(repoInfo[0], repoInfo[1], forkedRepoName, event.getCreatedAt()));
+            forkEventDtos.add(new ForkEventDto(repoInfo[0], repoInfo[1], forkedRepoName, event.getCreated_at()));
         }
         return forkEventDtos;
     }
@@ -194,7 +194,7 @@ public class EventProcessingService {
                 }
                 action = getStringValue(map, "action");
             }
-            prEventDtos.add(new PullRequestEventDto(repoInfo[0], repoInfo[1], prTitle, action, event.getCreatedAt()));
+            prEventDtos.add(new PullRequestEventDto(repoInfo[0], repoInfo[1], prTitle, action, event.getCreated_at()));
         }
         return prEventDtos;
     }
@@ -216,7 +216,7 @@ public class EventProcessingService {
                 }
                 action = getStringValue(map, "action");
             }
-            releaseEventDtos.add(new ReleaseEventDto(repoInfo[0], repoInfo[1], releaseName, action, event.getCreatedAt()));
+            releaseEventDtos.add(new ReleaseEventDto(repoInfo[0], repoInfo[1], releaseName, action, event.getCreated_at()));
         }
         return releaseEventDtos;
     }
@@ -236,7 +236,7 @@ public class EventProcessingService {
                     commentBody = getStringValue(commentMap, "body");
                 }
             }
-            commentEventDtos.add(new IssueCommentEventDto(repoInfo[0], repoInfo[1], commentBody, event.getCreatedAt()));
+            commentEventDtos.add(new IssueCommentEventDto(repoInfo[0], repoInfo[1], commentBody, event.getCreated_at()));
         }
         return commentEventDtos;
     }
@@ -248,7 +248,7 @@ public class EventProcessingService {
         List<PublicEventDto> publicEventDtos = new ArrayList<>();
         for (GitHubEvent event : publicEvents) {
             String[] repoInfo = extractRepoInfo(event.getRepo() != null ? event.getRepo().getName() : null);
-            publicEventDtos.add(new PublicEventDto(repoInfo[0], repoInfo[1], event.getCreatedAt()));
+            publicEventDtos.add(new PublicEventDto(repoInfo[0], repoInfo[1], event.getCreated_at()));
         }
         return publicEventDtos;
     }
@@ -267,7 +267,7 @@ public class EventProcessingService {
                 refType = getStringValue(map, "ref_type");
                 ref = getStringValue(map, "ref");
             }
-            deleteEventDtos.add(new DeleteEventDto(repoInfo[0], repoInfo[1], refType, ref, event.getCreatedAt()));
+            deleteEventDtos.add(new DeleteEventDto(repoInfo[0], repoInfo[1], refType, ref, event.getCreated_at()));
         }
         return deleteEventDtos;
     }
@@ -286,7 +286,7 @@ public class EventProcessingService {
                 refType = getStringValue(map, "ref_type");
                 ref = getStringValue(map, "ref");
             }
-            createEventDtos.add(new CreateEventDto(repoInfo[0], repoInfo[1], refType, ref, event.getCreatedAt()));
+            createEventDtos.add(new CreateEventDto(repoInfo[0], repoInfo[1], refType, ref, event.getCreated_at()));
         }
         return createEventDtos;
     }
@@ -308,7 +308,7 @@ public class EventProcessingService {
                 }
                 action = getStringValue(map, "action");
             }
-            memberEventDtos.add(new MemberEventDto(repoInfo[0], repoInfo[1], memberLogin, action, event.getCreatedAt()));
+            memberEventDtos.add(new MemberEventDto(repoInfo[0], repoInfo[1], memberLogin, action, event.getCreated_at()));
         }
         return memberEventDtos;
     }
