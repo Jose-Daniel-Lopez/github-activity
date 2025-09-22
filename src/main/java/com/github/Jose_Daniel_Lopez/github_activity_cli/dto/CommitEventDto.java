@@ -45,4 +45,8 @@ public class CommitEventDto {
      * <p>Populated from the {@code created_at} field of the GitHub event.</p>
      */
     private String pushedAt;
+
+    public String getCreatedAt() {
+        return pushedAt;
+    }
 }

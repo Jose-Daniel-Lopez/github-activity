@@ -57,4 +57,8 @@ public class IssueEventDto {
      * <p>Populated from the {@code created_at} field of the GitHub event.</p>
      */
     private String occurredAt;
+
+    public String getCreatedAt() {
+        return occurredAt;
+    }
 }
