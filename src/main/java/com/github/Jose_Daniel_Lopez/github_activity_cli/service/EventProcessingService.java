@@ -8,22 +8,52 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Service responsible for processing and transforming raw GitHub events into typed DTOs.
+ * <p>
+ * This class handles:
+ * <ul>
+ *   <li>Filtering events by type</li>
+ *   <li>Extracting and validating data from untyped {@code payload} maps</li>
+ *   <li>Converting event data into presentation-ready DTOs</li>
+ * </ul>
+ * </p>
+ * <p><strong>Assumptions:</strong>
+ * <ul>
+ *   <li>GitHub event {@code payload} is deserialized as {@code Map<?, ?>}.</li>
+ *   <li>Repository names follow {@code "owner/repo"} format.</li>
+ * </ul>
+ * </p>
+ * <p><strong>Thread Safety:</strong> This service is stateless and thread-safe. Safe to inject and reuse.</p>
+ * <p><strong>Performance Note:</strong> For very large event lists, consider parallelStream() — but not needed for GitHub's 300-event limit.</p>
+ *
+ * @since 1.0
+ */
 @Service
 public class EventProcessingService {
 
     /**
-     * Extracts repository name and owner from a full repository name
+     * Extracts repository name and owner from a full repository name in "owner/repo" format.
+     * <p><strong>Example:</strong> Input: {@code "spring-projects/spring-boot"} → Returns: {@code ["spring-boot", "spring-projects"]}</p>
+     * <p><strong>Note:</strong> If format is invalid, returns input as repoName and {@code null} as repoOwner.</p>
+     *
+     * @param fullRepoName the full repository name (e.g., "owner/repo")
+     * @return array where [0] = repoName, [1] = repoOwner
      */
     public String[] extractRepoInfo(String fullRepoName) {
         if (fullRepoName != null && fullRepoName.contains("/")) {
-            String[] parts = fullRepoName.split("/");
-            return new String[]{fullRepoName, parts[0]}; // [repoName, repoOwner]
+            String[] parts = fullRepoName.split("/", 2); // Limit to 2 parts for safety
+            return new String[]{parts[1], parts[0]}; // [repoName, repoOwner]
         }
         return new String[]{fullRepoName, null};
     }
 
     /**
-     * Safely extracts string value from a map
+     * Safely extracts a string value from a map, returning {@code null} if key is missing or value is not a String.
+     *
+     * @param map the map to extract from
+     * @param key the key to look up
+     * @return the string value, or {@code null} if not present or not a String
      */
     public String getStringValue(Map<?, ?> map, String key) {
         Object value = map.get(key);
@@ -31,7 +61,11 @@ public class EventProcessingService {
     }
 
     /**
-     * Safely extracts integer value from a map
+     * Safely extracts an integer value from a map, returning 0 if key is missing or value is not a Number.
+     *
+     * @param map the map to extract from
+     * @param key the key to look up
+     * @return the integer value, or 0 if not present or not a Number
      */
     public int getIntValue(Map<?, ?> map, String key) {
         Object value = map.get(key);
@@ -39,7 +73,11 @@ public class EventProcessingService {
     }
 
     /**
-     * Processes events and filters by event type
+     * Filters an array of GitHub events by event type.
+     *
+     * @param events    array of GitHub events (may be null)
+     * @param eventType the event type to filter by (e.g., "PushEvent")
+     * @return list of events matching the type; never null
      */
     public List<GitHubEvent> filterEventsByType(GitHubEvent[] events, String eventType) {
         List<GitHubEvent> filteredEvents = new ArrayList<>();
@@ -54,7 +92,11 @@ public class EventProcessingService {
     }
 
     /**
-     * Processes PushEvents and converts them to CommitEventDto
+     * Processes PushEvents and converts them to {@link CommitEventDto}.
+     * <p><strong>Note:</strong> Nearly identical to {@link #processPushEvents} — consider consolidation if business logic permits.</p>
+     *
+     * @param pushEvents list of PushEvent GitHub events
+     * @return list of {@link CommitEventDto}
      */
     public List<CommitEventDto> processCommitEvents(List<GitHubEvent> pushEvents) {
         List<CommitEventDto> commitEvents = new ArrayList<>();
@@ -68,13 +110,17 @@ public class EventProcessingService {
                     commitCount = ((Number) size).intValue();
                 }
             }
-            commitEvents.add(new CommitEventDto(repoInfo[0], repoInfo[1], commitCount, event.getCreated_at()));
+            commitEvents.add(new CommitEventDto(repoInfo[0], repoInfo[1], commitCount, event.getCreatedAt()));
         }
         return commitEvents;
     }
 
     /**
-     * Processes PushEvents and converts them to PushEventDto
+     * Processes PushEvents and converts them to {@link PushEventDto}.
+     * <p><strong>Note:</strong> Nearly identical to {@link #processCommitEvents} — consider consolidation if business logic permits.</p>
+     *
+     * @param pushEvents list of PushEvent GitHub events
+     * @return list of {@link PushEventDto}
      */
     public List<PushEventDto> processPushEvents(List<GitHubEvent> pushEvents) {
         List<PushEventDto> pushEventDtos = new ArrayList<>();
@@ -88,13 +134,16 @@ public class EventProcessingService {
                     commitCount = ((Number) size).intValue();
                 }
             }
-            pushEventDtos.add(new PushEventDto(repoInfo[0], repoInfo[1], commitCount, event.getCreated_at()));
+            pushEventDtos.add(new PushEventDto(repoInfo[0], repoInfo[1], commitCount, event.getCreatedAt()));
         }
         return pushEventDtos;
     }
 
     /**
-     * Processes IssuesEvents and converts them to IssueEventDto
+     * Processes IssuesEvents and converts them to {@link IssueEventDto}.
+     *
+     * @param issueEvents list of IssuesEvent GitHub events
+     * @return list of {@link IssueEventDto}
      */
     public List<IssueEventDto> processIssueEvents(List<GitHubEvent> issueEvents) {
         List<IssueEventDto> issueEventDtos = new ArrayList<>();
@@ -110,13 +159,18 @@ public class EventProcessingService {
                 }
                 action = getStringValue(map, "action");
             }
-            issueEventDtos.add(new IssueEventDto(repoInfo[0], repoInfo[1], issueTitle, action, event.getCreated_at()));
+            issueEventDtos.add(new IssueEventDto(repoInfo[0], repoInfo[1], issueTitle, action, event.getCreatedAt()));
         }
         return issueEventDtos;
     }
 
     /**
-     * Processes starred repositories and converts them to StarEventDto
+     * Processes starred repositories and converts them to {@link StarEventDto}.
+     * <p><strong>Note:</strong> GitHub's starred repos API does not return {@code starred_at} in basic response.
+     * Consider using GraphQL or enhanced REST if timestamp is needed.</p>
+     *
+     * @param starredRepos array of starred repository objects from GitHub API
+     * @return list of {@link StarEventDto} (with placeholder timestamp)
      */
     public List<StarEventDto> processStarredRepos(Object[] starredRepos) {
         List<StarEventDto> starEvents = new ArrayList<>();
@@ -133,7 +187,10 @@ public class EventProcessingService {
     }
 
     /**
-     * Processes repositories and converts them to RepositoryDto
+     * Processes repositories and converts them to {@link RepositoryDto}.
+     *
+     * @param repos array of repository objects from GitHub API
+     * @return list of {@link RepositoryDto}
      */
     public List<RepositoryDto> processRepositories(Object[] repos) {
         List<RepositoryDto> repositories = new ArrayList<>();
@@ -150,7 +207,7 @@ public class EventProcessingService {
                     String updatedAt = getStringValue(repo, "updated_at");
 
                     repositories.add(new RepositoryDto(name, fullName, description, language,
-                                                     stargazersCount, forksCount, createdAt, updatedAt));
+                            stargazersCount, forksCount, createdAt, updatedAt));
                 }
             }
         }
@@ -158,7 +215,10 @@ public class EventProcessingService {
     }
 
     /**
-     * Processes ForkEvents and converts them to ForkEventDto
+     * Processes ForkEvents and converts them to {@link ForkEventDto}.
+     *
+     * @param forkEvents list of ForkEvent GitHub events
+     * @return list of {@link ForkEventDto}
      */
     public List<ForkEventDto> processForkEvents(List<GitHubEvent> forkEvents) {
         List<ForkEventDto> forkEventDtos = new ArrayList<>();
@@ -172,13 +232,16 @@ public class EventProcessingService {
                     forkedRepoName = getStringValue(forkeeMap, "full_name");
                 }
             }
-            forkEventDtos.add(new ForkEventDto(repoInfo[0], repoInfo[1], forkedRepoName, event.getCreated_at()));
+            forkEventDtos.add(new ForkEventDto(repoInfo[0], repoInfo[1], forkedRepoName, event.getCreatedAt()));
         }
         return forkEventDtos;
     }
 
     /**
-     * Processes PullRequestEvents and converts them to PullRequestEventDto
+     * Processes PullRequestEvents and converts them to {@link PullRequestEventDto}.
+     *
+     * @param prEvents list of PullRequestEvent GitHub events
+     * @return list of {@link PullRequestEventDto}
      */
     public List<PullRequestEventDto> processPullRequestEvents(List<GitHubEvent> prEvents) {
         List<PullRequestEventDto> prEventDtos = new ArrayList<>();
@@ -194,13 +257,16 @@ public class EventProcessingService {
                 }
                 action = getStringValue(map, "action");
             }
-            prEventDtos.add(new PullRequestEventDto(repoInfo[0], repoInfo[1], prTitle, action, event.getCreated_at()));
+            prEventDtos.add(new PullRequestEventDto(repoInfo[0], repoInfo[1], prTitle, action, event.getCreatedAt()));
         }
         return prEventDtos;
     }
 
     /**
-     * Processes ReleaseEvents and converts them to ReleaseEventDto
+     * Processes ReleaseEvents and converts them to {@link ReleaseEventDto}.
+     *
+     * @param releaseEvents list of ReleaseEvent GitHub events
+     * @return list of {@link ReleaseEventDto}
      */
     public List<ReleaseEventDto> processReleaseEvents(List<GitHubEvent> releaseEvents) {
         List<ReleaseEventDto> releaseEventDtos = new ArrayList<>();
@@ -216,13 +282,16 @@ public class EventProcessingService {
                 }
                 action = getStringValue(map, "action");
             }
-            releaseEventDtos.add(new ReleaseEventDto(repoInfo[0], repoInfo[1], releaseName, action, event.getCreated_at()));
+            releaseEventDtos.add(new ReleaseEventDto(repoInfo[0], repoInfo[1], releaseName, action, event.getCreatedAt()));
         }
         return releaseEventDtos;
     }
 
     /**
-     * Processes IssueCommentEvents and converts them to IssueCommentEventDto
+     * Processes IssueCommentEvents and converts them to {@link IssueCommentEventDto}.
+     *
+     * @param commentEvents list of IssueCommentEvent GitHub events
+     * @return list of {@link IssueCommentEventDto}
      */
     public List<IssueCommentEventDto> processCommentEvents(List<GitHubEvent> commentEvents) {
         List<IssueCommentEventDto> commentEventDtos = new ArrayList<>();
@@ -236,25 +305,31 @@ public class EventProcessingService {
                     commentBody = getStringValue(commentMap, "body");
                 }
             }
-            commentEventDtos.add(new IssueCommentEventDto(repoInfo[0], repoInfo[1], commentBody, event.getCreated_at()));
+            commentEventDtos.add(new IssueCommentEventDto(repoInfo[0], repoInfo[1], commentBody, event.getCreatedAt()));
         }
         return commentEventDtos;
     }
 
     /**
-     * Processes PublicEvents and converts them to PublicEventDto
+     * Processes PublicEvents and converts them to {@link PublicEventDto}.
+     *
+     * @param publicEvents list of PublicEvent GitHub events
+     * @return list of {@link PublicEventDto}
      */
     public List<PublicEventDto> processPublicEvents(List<GitHubEvent> publicEvents) {
         List<PublicEventDto> publicEventDtos = new ArrayList<>();
         for (GitHubEvent event : publicEvents) {
             String[] repoInfo = extractRepoInfo(event.getRepo() != null ? event.getRepo().getName() : null);
-            publicEventDtos.add(new PublicEventDto(repoInfo[0], repoInfo[1], event.getCreated_at()));
+            publicEventDtos.add(new PublicEventDto(repoInfo[0], repoInfo[1], event.getCreatedAt()));
         }
         return publicEventDtos;
     }
 
     /**
-     * Processes DeleteEvents and converts them to DeleteEventDto
+     * Processes DeleteEvents and converts them to {@link DeleteEventDto}.
+     *
+     * @param deleteEvents list of DeleteEvent GitHub events
+     * @return list of {@link DeleteEventDto}
      */
     public List<DeleteEventDto> processDeleteEvents(List<GitHubEvent> deleteEvents) {
         List<DeleteEventDto> deleteEventDtos = new ArrayList<>();
@@ -267,13 +342,16 @@ public class EventProcessingService {
                 refType = getStringValue(map, "ref_type");
                 ref = getStringValue(map, "ref");
             }
-            deleteEventDtos.add(new DeleteEventDto(repoInfo[0], repoInfo[1], refType, ref, event.getCreated_at()));
+            deleteEventDtos.add(new DeleteEventDto(repoInfo[0], repoInfo[1], refType, ref, event.getCreatedAt()));
         }
         return deleteEventDtos;
     }
 
     /**
-     * Processes CreateEvents and converts them to CreateEventDto
+     * Processes CreateEvents and converts them to {@link CreateEventDto}.
+     *
+     * @param createEvents list of CreateEvent GitHub events
+     * @return list of {@link CreateEventDto}
      */
     public List<CreateEventDto> processCreateEvents(List<GitHubEvent> createEvents) {
         List<CreateEventDto> createEventDtos = new ArrayList<>();
@@ -286,13 +364,16 @@ public class EventProcessingService {
                 refType = getStringValue(map, "ref_type");
                 ref = getStringValue(map, "ref");
             }
-            createEventDtos.add(new CreateEventDto(repoInfo[0], repoInfo[1], refType, ref, event.getCreated_at()));
+            createEventDtos.add(new CreateEventDto(repoInfo[0], repoInfo[1], refType, ref, event.getCreatedAt()));
         }
         return createEventDtos;
     }
 
     /**
-     * Processes MemberEvents and converts them to MemberEventDto
+     * Processes MemberEvents and converts them to {@link MemberEventDto}.
+     *
+     * @param memberEvents list of MemberEvent GitHub events
+     * @return list of {@link MemberEventDto}
      */
     public List<MemberEventDto> processMemberEvents(List<GitHubEvent> memberEvents) {
         List<MemberEventDto> memberEventDtos = new ArrayList<>();
@@ -308,7 +389,7 @@ public class EventProcessingService {
                 }
                 action = getStringValue(map, "action");
             }
-            memberEventDtos.add(new MemberEventDto(repoInfo[0], repoInfo[1], memberLogin, action, event.getCreated_at()));
+            memberEventDtos.add(new MemberEventDto(repoInfo[0], repoInfo[1], memberLogin, action, event.getCreatedAt()));
         }
         return memberEventDtos;
     }
