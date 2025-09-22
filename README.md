@@ -1,12 +1,11 @@
-# GitHub Activity CLI
+# GitHub Activity API
 
-A Spring Boot REST API application that fetches and displays recent GitHub user activity. While named as a "CLI tool", this project currently provides a web service with REST endpoints that can be consumed by CLI clients, web applications, or other services.
+A Spring Boot REST API application that fetches and displays recent GitHub user activity. This project provides a web service with REST endpoints that can be consumed by web applications, mobile apps, or other services.
 
 ## Features
 
 - **Comprehensive Activity Tracking**: Fetches various types of GitHub user activities including commits, issues, pull requests, stars, forks, releases, and more
 - **RESTful API**: Clean REST endpoints for programmatic access
-- **ANSI Color Formatting**: Formatted output with colors and icons for terminal display
 - **Reactive Architecture**: Built with Spring WebFlux for non-blocking I/O operations
 - **GitHub API Integration**: Direct integration with GitHub's public Events API
 - **Error Handling**: Robust error handling for API failures and user not found scenarios
@@ -132,7 +131,7 @@ src/main/java/com/github/Jose_Daniel_Lopez/github_activity_cli/
 ├── service/                               # Business logic services
 │   ├── GitHubApiService.java             # GitHub API client
 │   ├── EventProcessingService.java       # Event filtering/processing
-│   └── EventFormatter.java               # CLI-style formatting
+│   └── EventFormatter.java               # Event formatting utilities
 └── util/
     └── AnsiColor.java                    # ANSI color utilities
 ```
@@ -141,7 +140,7 @@ src/main/java/com/github/Jose_Daniel_Lopez/github_activity_cli/
 
 - **GitHubApiService**: Handles HTTP requests to GitHub's API using WebFlux WebClient
 - **EventProcessingService**: Filters and transforms raw GitHub events into structured DTOs
-- **EventFormatter**: Formats events for terminal display with colors and icons
+- **EventFormatter**: Provides utilities for formatting event data
 - **WebClientConfig**: Configures the reactive HTTP client with proper headers
 
 ## Limitations
@@ -153,11 +152,11 @@ src/main/java/com/github/Jose_Daniel_Lopez/github_activity_cli/
 
 ## Future Enhancements
 
-- **CLI Client**: Implement a command-line interface that consumes this API
 - **Authentication**: Support for GitHub personal access tokens for private repos and higher rate limits
 - **Caching**: Add caching layer to reduce API calls
 - **Pagination**: Support for paginated results
 - **Webhooks**: Real-time activity monitoring via GitHub webhooks
+- **Rate Limiting**: Implement request throttling and user quotas
 
 ## Testing
 
