@@ -160,10 +160,41 @@ src/main/java/com/github/Jose_Daniel_Lopez/github_activity_cli/
 
 ## Testing
 
-Run the tests:
+The project includes comprehensive test coverage with unit tests, integration tests, and controller tests.
+
+### Test Structure
+
+```text
+src/test/java/com/github/Jose_Daniel_Lopez/github_activity_cli/
+├── GithubActivityCliApplicationTests.java    # Main application context tests
+├── controller/
+│   └── GithubActivityControllerTest.java     # REST controller tests
+├── integration/
+│   └── GithubActivityIntegrationTest.java    # End-to-end integration tests
+└── service/
+    ├── EventFormatterTest.java               # Event formatting tests
+    ├── EventProcessingServiceTest.java       # Event processing logic tests
+    └── GitHubApiServiceTest.java             # GitHub API client tests
+```
+
+### Running Tests
+
+Run all tests:
 
 ```bash
 ./mvnw test
+```
+
+Run tests with coverage report:
+
+```bash
+./mvnw test jacoco:report
+```
+
+Run specific test class:
+
+```bash
+./mvnw test -Dtest=GithubActivityControllerTest
 ```
 
 ## Building for Production
